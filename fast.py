@@ -1,15 +1,14 @@
-import re
+import re, os, sys
 from asyncio import ensure_future, gather, get_event_loop, sleep
 from collections import deque
 from statistics import mean
-from time import time
-
+from time import time, asctime
 from aiohttp import ClientSession
 
-MIN_DURATION = 7
+MIN_DURATION = 20
 MAX_DURATION = 30
 STABILITY_DELTA = 2
-MIN_STABLE_MEASUREMENTS = 6
+MIN_STABLE_MEASUREMENTS = 20
 
 total = 0
 done = 0
@@ -18,14 +17,20 @@ sessions = []
 
 async def run():
     print('fast.com cli')
+    ip = await get_ip()
     token = await get_token()
     urls = await get_urls(token)
     conns = await warmup(urls)
     future = ensure_future(measure(conns))
     result = await progress(future)
     await cleanup()
-    return result
+    return result, ip, urls
 
+async def get_ip():
+    async with ClientSession() as s:
+        resp = await s.get('https://httpbin.org/ip')
+        data = await resp.json()
+        return data['origin']
 
 async def get_token():
     async with ClientSession() as s:
@@ -116,7 +121,16 @@ def dot():
 
 def main():
     loop = get_event_loop()
-    return loop.run_until_complete(run())
+    result, ip, urls = loop.run_until_complete(run())
+    if sys.platform in ['darwin', 'linux']:
+        fname = os.path.join(os.environ['HOME'], 'results.csv')
+    elif sys.platform == 'win32':
+        fname = os.path.join('\\', 'Downloads', 'results.csv')
+    else:
+        exit(-1)
+    with open(fname, 'a') as f:
+        f.write("{},{},{},{}\n".format(asctime(), result, ip, urls))
+    return result
 
 
 if __name__ == '__main__':
