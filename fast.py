@@ -16,7 +16,7 @@ sessions = []
 
 
 async def run():
-    print('fast.com cli')
+    print('Running speedtest to fast.com')
     ip = await get_ip()
     token = await get_token()
     urls = await get_urls(token)
@@ -99,7 +99,7 @@ async def progress(future):
         speed = total / elapsed / 2**17
         measurements.append(speed)
 
-        print(f'\033[2K\r{speed:.3f} mbps', end='', flush=True)
+#        print(f'\033[2K\r{speed:.3f} mbps', end='', flush=True)
 
         if len(measurements) == 10:
             delta = abs(speed - mean(measurements)) / speed * 100
@@ -122,14 +122,11 @@ def dot():
 def main():
     loop = get_event_loop()
     result, ip, urls = loop.run_until_complete(run())
-    if sys.platform in ['darwin', 'linux']:
-        fname = os.path.join(os.environ['HOME'], 'results.csv')
-    elif sys.platform == 'win32':
-        fname = os.path.join('\\', 'Downloads', 'results.csv')
-    else:
-        exit(-1)
+    print ('download speed:',round(result,2))
+    fname = 'results.csv'
+
     with open(fname, 'a') as f:
-        f.write("{},{},{},{}\n".format(asctime(), result, ip, urls))
+        f.write("{},{}\n".format(asctime(), result))
     return result
 
 
